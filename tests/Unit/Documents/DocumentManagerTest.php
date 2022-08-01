@@ -1,50 +1,44 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Documents;
+namespace ElasticAdapter\Tests\Unit\Documents;
 
-use Elastic\Adapter\Documents\Document;
-use Elastic\Adapter\Documents\DocumentManager;
-use Elastic\Adapter\Documents\Routing;
-use Elastic\Adapter\Exceptions\BulkOperationException;
-use Elastic\Adapter\Search\Hit;
-use Elastic\Adapter\Search\SearchParameters;
-use Elastic\Client\ClientBuilderInterface;
-use Elastic\Elasticsearch\Client;
-use Elastic\Elasticsearch\Response\Elasticsearch;
+use ElasticAdapter\Documents\Document;
+use ElasticAdapter\Documents\DocumentManager;
+use ElasticAdapter\Documents\Routing;
+use ElasticAdapter\Exceptions\BulkRequestException;
+use ElasticAdapter\Search\SearchRequest;
+use Elasticsearch\Client;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
 /**
- * @covers \Elastic\Adapter\Documents\DocumentManager
+ * @covers \ElasticAdapter\Documents\DocumentManager
  *
- * @uses   \Elastic\Adapter\Documents\Document
- * @uses   \Elastic\Adapter\Documents\Routing
- * @uses   \Elastic\Adapter\Exceptions\BulkOperationException
- * @uses   \Elastic\Adapter\Search\Hit
- * @uses   \Elastic\Adapter\Search\SearchParameters
- * @uses   \Elastic\Adapter\Search\SearchResult
+ * @uses   \ElasticAdapter\Documents\Document
+ * @uses   \ElasticAdapter\Documents\Routing
+ * @uses   \ElasticAdapter\Exceptions\BulkRequestException
+ * @uses   \ElasticAdapter\Search\Hit
+ * @uses   \ElasticAdapter\Search\SearchRequest
+ * @uses   \ElasticAdapter\Search\SearchResponse
  */
 final class DocumentManagerTest extends TestCase
 {
-    private MockObject $client;
-    private DocumentManager $documentManager;
-
     /**
-     * @noinspection ClassMockingCorrectnessInspection
-     * @noinspection PhpUnitInvalidMockingEntityInspection
+     * @var MockObject
      */
+    private $client;
+    /**
+     * @var DocumentManager
+     */
+    private $documentManager;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->client = $this->createMock(Client::class);
-        $this->client->method('setAsync')->willReturnSelf();
-
-        $clientBuilder = $this->createMock(ClientBuilderInterface::class);
-        $clientBuilder->method('default')->willReturn($this->client);
-
-        $this->documentManager = new DocumentManager($clientBuilder);
+        $this->documentManager = new DocumentManager($this->client);
     }
 
     public function test_documents_can_be_indexed_with_refresh(): void
@@ -62,9 +56,11 @@ final class DocumentManagerTest extends TestCase
                     ['title' => 'Doc 2'],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documents = collect([
             new Document('1', ['title' => 'Doc 1']),
@@ -87,15 +83,17 @@ final class DocumentManagerTest extends TestCase
                     ['title' => 'Doc 1'],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documents = collect([
             new Document('1', ['title' => 'Doc 1']),
         ]);
 
-        $this->assertSame($this->documentManager, $this->documentManager->index('test', $documents));
+        $this->assertSame($this->documentManager, $this->documentManager->index('test', $documents, false));
     }
 
     public function test_documents_can_be_indexed_with_custom_routing(): void
@@ -113,9 +111,11 @@ final class DocumentManagerTest extends TestCase
                     ['title' => 'Doc 2'],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documents = collect([
             new Document('1', ['title' => 'Doc 1']),
@@ -142,9 +142,11 @@ final class DocumentManagerTest extends TestCase
                     ['delete' => ['_id' => '2']],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documentIds = ['1', '2'];
 
@@ -163,9 +165,11 @@ final class DocumentManagerTest extends TestCase
                     ['delete' => ['_id' => '1']],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documentIds = ['1'];
 
@@ -185,9 +189,11 @@ final class DocumentManagerTest extends TestCase
                     ['delete' => ['_id' => '2', 'routing' => 'Doc2']],
                 ],
             ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
+            ->willReturn([
+                'took' => 0,
+                'errors' => false,
+                'items' => [],
+            ]);
 
         $documentIds = ['1', '2'];
 
@@ -211,7 +217,9 @@ final class DocumentManagerTest extends TestCase
                 ],
             ]);
 
-        $query = ['match_all' => new stdClass()];
+        $query = [
+            'match_all' => new stdClass(),
+        ];
 
         $this->assertSame($this->documentManager, $this->documentManager->deleteByQuery('test', $query, true));
     }
@@ -229,18 +237,26 @@ final class DocumentManagerTest extends TestCase
                 ],
             ]);
 
-        $query = ['match_all' => new stdClass()];
+        $query = [
+            'match_all' => new stdClass(),
+        ];
 
-        $this->assertSame($this->documentManager, $this->documentManager->deleteByQuery('test', $query));
+        $this->assertSame($this->documentManager, $this->documentManager->deleteByQuery('test', $query, false));
     }
 
     public function test_documents_can_be_found(): void
     {
-        $response = $this->createMock(Elasticsearch::class);
-
-        $response
+        $this->client
             ->expects($this->once())
-            ->method('asArray')
+            ->method('search')
+            ->with([
+                'index' => 'test',
+                'body' => [
+                    'query' => [
+                        'match' => ['content' => 'foo'],
+                    ],
+                ],
+            ])
             ->willReturn([
                 'hits' => [
                     'total' => [
@@ -259,107 +275,39 @@ final class DocumentManagerTest extends TestCase
                 ],
             ]);
 
-        $this->client
-            ->expects($this->once())
-            ->method('search')
-            ->with([
-                'index' => 'test',
-                'body' => [
-                    'query' => [
-                        'match' => ['content' => 'foo'],
-                    ],
-                ],
-            ])
-            ->willReturn($response);
+        $response = $this->documentManager->search('test', new SearchRequest([
+            'match' => ['content' => 'foo'],
+        ]));
 
-        $searchParameters = (new SearchParameters())
-            ->indices(['test'])
-            ->query([
-                'match' => [
-                    'content' => 'foo',
-                ],
-            ]);
-
-        $searchResult = $this->documentManager->search($searchParameters);
-        $this->assertSame(1, $searchResult->total());
-
-        /** @var Hit $firstHit */
-        $firstHit = $searchResult->hits()[0];
-        $this->assertEquals(new Document('1', ['content' => 'foo']), $firstHit->document());
+        $this->assertSame(1, $response->total());
+        $this->assertEquals(new Document('1', ['content' => 'foo']), $response->hits()[0]->document());
     }
 
     public function test_exception_is_thrown_when_index_operation_was_unsuccessful(): void
     {
-        $response = $this->createMock(Elasticsearch::class);
-
-        $response
+        $this->client
             ->expects($this->once())
-            ->method('asArray')
+            ->method('bulk')
+            ->with([
+                'index' => 'test',
+                'refresh' => 'false',
+                'body' => [
+                    ['index' => ['_id' => '1']],
+                    ['title' => 'Doc 1'],
+                ],
+            ])
             ->willReturn([
                 'took' => 0,
                 'errors' => true,
                 'items' => [],
             ]);
 
-        $this->client
-            ->expects($this->once())
-            ->method('bulk')
-            ->with([
-                'index' => 'test',
-                'refresh' => 'false',
-                'body' => [
-                    ['index' => ['_id' => '1']],
-                    ['title' => 'Doc 1'],
-                ],
-            ])
-            ->willReturn($response);
-
-        $this->expectException(BulkOperationException::class);
+        $this->expectException(BulkRequestException::class);
 
         $documents = collect([
             new Document('1', ['title' => 'Doc 1']),
         ]);
 
         $this->documentManager->index('test', $documents);
-    }
-
-    /**
-     * @noinspection ClassMockingCorrectnessInspection
-     * @noinspection PhpUnitInvalidMockingEntityInspection
-     */
-    public function test_connection_can_be_changed(): void
-    {
-        $defaultClient = $this->createMock(Client::class);
-        $defaultClient->method('setAsync')->willReturnSelf();
-
-        $defaultClient
-            ->expects($this->never())
-            ->method('bulk');
-
-        $testClient = $this->createMock(Client::class);
-        $testClient->method('setAsync')->willReturnSelf();
-
-        $testClient
-            ->expects($this->once())
-            ->method('bulk')
-            ->with([
-                'index' => 'docs',
-                'refresh' => 'false',
-                'body' => [
-                    ['index' => ['_id' => '1']],
-                    ['title' => 'Doc 1'],
-                ],
-            ])
-            ->willReturn(
-                $this->createMock(Elasticsearch::class)
-            );
-
-        $clientBuilder = $this->createMock(ClientBuilderInterface::class);
-        $clientBuilder->method('default')->willReturn($defaultClient);
-        $clientBuilder->method('connection')->with('test')->willReturn($testClient);
-
-        (new DocumentManager($clientBuilder))
-            ->connection('test')
-            ->index('docs', collect([new Document('1', ['title' => 'Doc 1'])]));
     }
 }

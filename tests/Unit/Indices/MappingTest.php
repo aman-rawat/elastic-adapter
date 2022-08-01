@@ -1,14 +1,14 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Indices;
+namespace ElasticAdapter\Tests\Unit\Indices;
 
-use Elastic\Adapter\Indices\Mapping;
+use ElasticAdapter\Indices\Mapping;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Indices\Mapping
+ * @covers \ElasticAdapter\Indices\Mapping
  *
- * @uses   \Elastic\Adapter\Indices\MappingProperties
+ * @uses   \ElasticAdapter\Indices\MappingProperties
  */
 class MappingTest extends TestCase
 {

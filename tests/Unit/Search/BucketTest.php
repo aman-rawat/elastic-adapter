@@ -1,16 +1,19 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Search;
+namespace ElasticAdapter\Tests\Unit\Search;
 
-use Elastic\Adapter\Search\Bucket;
+use ElasticAdapter\Search\Bucket;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Search\Bucket
+ * @covers \ElasticAdapter\Search\Bucket
  */
 final class BucketTest extends TestCase
 {
-    private Bucket $bucket;
+    /**
+     * @var Bucket
+     */
+    private $bucket;
 
     protected function setUp(): void
     {

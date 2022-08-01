@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Indices;
+namespace ElasticAdapter\Indices;
 
 use Closure;
 use Illuminate\Contracts\Support\Arrayable;
@@ -52,10 +52,22 @@ final class Mapping implements Arrayable
 {
     use ForwardsCalls;
 
-    private ?bool $isFieldNamesEnabled;
-    private ?bool $isSourceEnabled;
-    private MappingProperties $properties;
-    private array $dynamicTemplates = [];
+    /**
+     * @var bool|null
+     */
+    private $isFieldNamesEnabled;
+    /**
+     * @var bool|null
+     */
+    private $isSourceEnabled;
+    /**
+     * @var MappingProperties
+     */
+    private $properties;
+    /**
+     * @var array
+     */
+    private $dynamicTemplates = [];
 
     public function __construct()
     {

@@ -1,22 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Indices;
+namespace ElasticAdapter\Tests\Unit\Indices;
 
-use Elastic\Adapter\Indices\Index;
-use Elastic\Adapter\Indices\Mapping;
-use Elastic\Adapter\Indices\Settings;
+use ElasticAdapter\Indices\IndexBlueprint;
+use ElasticAdapter\Indices\Mapping;
+use ElasticAdapter\Indices\Settings;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Indices\Index
+ * @covers \ElasticAdapter\Indices\IndexBlueprint
  *
- * @uses   \Elastic\Adapter\Indices\Mapping
+ * @uses   ElasticAdapter\Indices\Mapping
  */
-class IndexTest extends TestCase
+class IndexBlueprintTest extends TestCase
 {
     public function test_index_default_values(): void
     {
-        $index = new Index('foo');
+        $index = new IndexBlueprint('foo');
 
         $this->assertNull($index->settings());
         $this->assertNull($index->mapping());
@@ -26,7 +26,7 @@ class IndexTest extends TestCase
     {
         $mapping = new Mapping();
         $settings = new Settings();
-        $index = new Index('foo', $mapping, $settings);
+        $index = new IndexBlueprint('foo', $mapping, $settings);
 
         $this->assertSame('foo', $index->name());
         $this->assertSame($mapping, $index->mapping());

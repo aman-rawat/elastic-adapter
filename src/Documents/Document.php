@@ -1,14 +1,20 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Documents;
+namespace ElasticAdapter\Documents;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 
 final class Document implements Arrayable
 {
-    private string $id;
-    private array $content;
+    /**
+     * @var string
+     */
+    private $id;
+    /**
+     * @var array
+     */
+    private $content;
 
     public function __construct(string $id, array $content)
     {

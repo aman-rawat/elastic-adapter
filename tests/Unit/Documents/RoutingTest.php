@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Documents;
+namespace ElasticAdapter\Tests\Unit\Documents;
 
-use Elastic\Adapter\Documents\Routing;
+use ElasticAdapter\Documents\Routing;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Documents\Routing
+ * @covers \ElasticAdapter\Documents\Routing
  */
 final class RoutingTest extends TestCase
 {

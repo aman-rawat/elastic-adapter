@@ -1,58 +1,56 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Search;
+namespace ElasticAdapter\Search;
 
 use Illuminate\Contracts\Support\Arrayable;
 
-final class SearchParameters implements Arrayable
+final class SearchRequest implements Arrayable
 {
-    private array $params;
+    /**
+     * @var array
+     */
+    private $request;
 
-    public function indices(array $indexNames): self
+    public function __construct(?array $query = null)
     {
-        $this->params['index'] = implode(',', $indexNames);
-        return $this;
-    }
-
-    public function query(array $query): self
-    {
-        $this->params['body']['query'] = $query;
-        return $this;
+        if (isset($query)) {
+            $this->request['body']['query'] = $query;
+        }
     }
 
     public function highlight(array $highlight): self
     {
-        $this->params['body']['highlight'] = $highlight;
+        $this->request['body']['highlight'] = $highlight;
         return $this;
     }
 
     public function sort(array $sort): self
     {
-        $this->params['body']['sort'] = $sort;
+        $this->request['body']['sort'] = $sort;
         return $this;
     }
 
     public function rescore(array $rescore): self
     {
-        $this->params['body']['rescore'] = $rescore;
+        $this->request['body']['rescore'] = $rescore;
         return $this;
     }
 
     public function from(int $from): self
     {
-        $this->params['body']['from'] = $from;
+        $this->request['body']['from'] = $from;
         return $this;
     }
 
     public function size(int $size): self
     {
-        $this->params['body']['size'] = $size;
+        $this->request['body']['size'] = $size;
         return $this;
     }
 
     public function suggest(array $suggest): self
     {
-        $this->params['body']['suggest'] = $suggest;
+        $this->request['body']['suggest'] = $suggest;
         return $this;
     }
 
@@ -61,25 +59,25 @@ final class SearchParameters implements Arrayable
      */
     public function source($source): self
     {
-        $this->params['body']['_source'] = $source;
+        $this->request['body']['_source'] = $source;
         return $this;
     }
 
     public function collapse(array $collapse): self
     {
-        $this->params['body']['collapse'] = $collapse;
+        $this->request['body']['collapse'] = $collapse;
         return $this;
     }
 
     public function aggregations(array $aggregations): self
     {
-        $this->params['body']['aggregations'] = $aggregations;
+        $this->request['body']['aggregations'] = $aggregations;
         return $this;
     }
 
     public function postFilter(array $postFilter): self
     {
-        $this->params['body']['post_filter'] = $postFilter;
+        $this->request['body']['post_filter'] = $postFilter;
         return $this;
     }
 
@@ -88,66 +86,54 @@ final class SearchParameters implements Arrayable
      */
     public function trackTotalHits($trackTotalHits): self
     {
-        $this->params['body']['track_total_hits'] = $trackTotalHits;
+        $this->request['body']['track_total_hits'] = $trackTotalHits;
         return $this;
     }
 
     public function indicesBoost(array $indicesBoost): self
     {
-        $this->params['body']['indices_boost'] = $indicesBoost;
+        $this->request['body']['indices_boost'] = $indicesBoost;
         return $this;
     }
 
     public function trackScores(bool $trackScores): self
     {
-        $this->params['body']['track_scores'] = $trackScores;
+        $this->request['body']['track_scores'] = $trackScores;
         return $this;
     }
 
     public function minScore(float $minScore): self
     {
-        $this->params['body']['min_score'] = $minScore;
+        $this->request['body']['min_score'] = $minScore;
         return $this;
     }
 
     public function scriptFields(array $scriptFields): self
     {
-        $this->params['body']['script_fields'] = $scriptFields;
+        $this->request['body']['script_fields'] = $scriptFields;
         return $this;
     }
 
     public function searchType(string $searchType): self
     {
-        $this->params['search_type'] = $searchType;
+        $this->request['search_type'] = $searchType;
         return $this;
     }
 
     public function preference(string $preference): self
     {
-        $this->params['preference'] = $preference;
+        $this->request['preference'] = $preference;
         return $this;
     }
 
-    public function pointInTime(array $pointInTime): self
+    public function explain(string $explain): self
     {
-        $this->params['body']['pit'] = $pointInTime;
-        return $this;
-    }
-
-    public function searchAfter(array $searchAfter): self
-    {
-        $this->params['body']['search_after'] = $searchAfter;
-        return $this;
-    }
-
-    public function routing(array $routing): self
-    {
-        $this->params['routing'] = implode(',', $routing);
+        $this->request['explain'] = $explain;
         return $this;
     }
 
     public function toArray(): array
     {
-        return $this->params;
+        return $this->request;
     }
 }

@@ -1,10 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Documents;
+namespace ElasticAdapter\Documents;
 
 final class Routing
 {
-    private array $routing = [];
+    /**
+     * @var array
+     */
+    private $routing = [];
 
     public function add(string $documentId, string $value): self
     {

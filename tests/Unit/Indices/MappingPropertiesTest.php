@@ -1,14 +1,14 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Indices;
+namespace ElasticAdapter\Tests\Unit\Indices;
 
 use BadMethodCallException;
 use Closure;
-use Elastic\Adapter\Indices\MappingProperties;
+use ElasticAdapter\Indices\MappingProperties;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Indices\MappingProperties
+ * @covers \ElasticAdapter\Indices\MappingProperties
  */
 final class MappingPropertiesTest extends TestCase
 {

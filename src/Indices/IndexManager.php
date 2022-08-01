@@ -1,18 +1,26 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Indices;
+namespace ElasticAdapter\Indices;
 
-use Elastic\Adapter\Client;
-use Elastic\Elasticsearch\Response\Elasticsearch;
+use Elasticsearch\Client;
+use Elasticsearch\Namespaces\IndicesNamespace;
 use Illuminate\Support\Collection;
 
 class IndexManager
 {
-    use Client;
+    /**
+     * @var IndicesNamespace
+     */
+    private $indices;
+
+    public function __construct(Client $client)
+    {
+        $this->indices = $client->indices();
+    }
 
     public function open(string $indexName): self
     {
-        $this->client->indices()->open([
+        $this->indices->open([
             'index' => $indexName,
         ]);
 
@@ -21,7 +29,7 @@ class IndexManager
 
     public function close(string $indexName): self
     {
-        $this->client->indices()->close([
+        $this->indices->close([
             'index' => $indexName,
         ]);
 
@@ -30,15 +38,12 @@ class IndexManager
 
     public function exists(string $indexName): bool
     {
-        /** @var Elasticsearch $response */
-        $response = $this->client->indices()->exists([
+        return $this->indices->exists([
             'index' => $indexName,
         ]);
-
-        return $response->asBool();
     }
 
-    public function create(Index $index): self
+    public function create(IndexBlueprint $index): self
     {
         $params = [
             'index' => $index->name(),
@@ -55,7 +60,7 @@ class IndexManager
             $params['body']['settings'] = $settings;
         }
 
-        $this->client->indices()->create($params);
+        $this->indices->create($params);
 
         return $this;
     }
@@ -74,14 +79,14 @@ class IndexManager
             $params['body']['settings'] = $settings;
         }
 
-        $this->client->indices()->create($params);
+        $this->indices->create($params);
 
         return $this;
     }
 
     public function putMapping(string $indexName, Mapping $mapping): self
     {
-        $this->client->indices()->putMapping([
+        $this->indices->putMapping([
             'index' => $indexName,
             'body' => $mapping->toArray(),
         ]);
@@ -91,7 +96,7 @@ class IndexManager
 
     public function putMappingRaw(string $indexName, array $mapping): self
     {
-        $this->client->indices()->putMapping([
+        $this->indices->putMapping([
             'index' => $indexName,
             'body' => $mapping,
         ]);
@@ -101,7 +106,7 @@ class IndexManager
 
     public function putSettings(string $indexName, Settings $settings): self
     {
-        $this->client->indices()->putSettings([
+        $this->indices->putSettings([
             'index' => $indexName,
             'body' => [
                 'settings' => $settings->toArray(),
@@ -113,7 +118,7 @@ class IndexManager
 
     public function putSettingsRaw(string $indexName, array $settings): self
     {
-        $this->client->indices()->putSettings([
+        $this->indices->putSettings([
             'index' => $indexName,
             'body' => [
                 'settings' => $settings,
@@ -125,11 +130,31 @@ class IndexManager
 
     public function drop(string $indexName): self
     {
-        $this->client->indices()->delete([
+        $this->indices->delete([
             'index' => $indexName,
         ]);
 
         return $this;
+    }
+
+    /**
+     * @return Collection|Alias[]
+     */
+    public function getAliases(string $indexName): Collection
+    {
+        $response = $this->indices->getAlias([
+            'index' => $indexName,
+        ]);
+
+        $aliases = $response[$indexName]['aliases'] ?? [];
+
+        return collect($aliases)->map(static function (array $parameters, string $name) {
+            return new Alias(
+                $name,
+                $parameters['filter'] ?? null,
+                $parameters['routing'] ?? null
+            );
+        });
     }
 
     public function putAlias(string $indexName, Alias $alias): self
@@ -139,10 +164,6 @@ class IndexManager
             'name' => $alias->name(),
         ];
 
-        if ($alias->isWriteIndex()) {
-            $params['body']['is_write_index'] = $alias->isWriteIndex();
-        }
-
         if ($alias->routing()) {
             $params['body']['routing'] = $alias->routing();
         }
@@ -151,46 +172,18 @@ class IndexManager
             $params['body']['filter'] = $alias->filter();
         }
 
-        $this->client->indices()->putAlias($params);
-
-        return $this;
-    }
-
-    public function putAliasRaw(string $indexName, string $aliasName, ?array $settings = null): self
-    {
-        $params = [
-            'index' => $indexName,
-            'name' => $aliasName,
-        ];
-
-        if (isset($settings)) {
-            $params['body'] = $settings;
-        }
-
-        $this->client->indices()->putAlias($params);
+        $this->indices->putAlias($params);
 
         return $this;
     }
 
     public function deleteAlias(string $indexName, string $aliasName): self
     {
-        $this->client->indices()->deleteAlias([
+        $this->indices->deleteAlias([
             'index' => $indexName,
             'name' => $aliasName,
         ]);
 
         return $this;
-    }
-
-    public function getAliases(string $indexName): Collection
-    {
-        /** @var Elasticsearch $response */
-        $response = $this->client->indices()->getAlias([
-            'index' => $indexName,
-        ]);
-
-        $rawResult = $response->asArray();
-
-        return collect(array_keys($rawResult[$indexName]['aliases'] ?? []));
     }
 }

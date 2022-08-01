@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Search;
+namespace ElasticAdapter\Tests\Unit\Search;
 
-use Elastic\Adapter\Search\Highlight;
+use ElasticAdapter\Search\Highlight;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Search\Highlight
+ * @covers \ElasticAdapter\Search\Highlight
  */
 final class HighlightTest extends TestCase
 {

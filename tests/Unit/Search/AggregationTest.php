@@ -1,19 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace Elastic\Adapter\Tests\Unit\Search;
+namespace ElasticAdapter\Tests\Unit\Search;
 
-use Elastic\Adapter\Search\Aggregation;
-use Elastic\Adapter\Search\Bucket;
+use ElasticAdapter\Search\Aggregation;
+use ElasticAdapter\Search\Bucket;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Elastic\Adapter\Search\Aggregation
+ * @covers \ElasticAdapter\Search\Aggregation
  *
- * @uses   \Elastic\Adapter\Search\Bucket
+ * @uses   \ElasticAdapter\Search\Bucket
  */
 final class AggregationTest extends TestCase
 {
-    private Aggregation $aggregation;
+    /**
+     * @var Aggregation
+     */
+    private $aggregation;
 
     protected function setUp(): void
     {
@@ -33,23 +36,12 @@ final class AggregationTest extends TestCase
 
     public function test_buckets_can_be_retrieved(): void
     {
-        $this->assertEquals(
-            collect([
-                new Bucket([
-                    'key' => 'electronic',
-                    'doc_count' => 6,
-                ]),
+        $this->assertEquals(collect([
+            new Bucket([
+                'key' => 'electronic',
+                'doc_count' => 6,
             ]),
-            $this->aggregation->buckets()
-        );
-    }
-
-    public function test_bucket_keys_can_be_plucked(): void
-    {
-        $this->assertEquals(
-            collect(['electronic']),
-            $this->aggregation->buckets()->pluck('key')
-        );
+        ]), $this->aggregation->buckets());
     }
 
     public function test_raw_representation_can_be_retrieved(): void
