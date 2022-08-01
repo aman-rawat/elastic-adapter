@@ -126,7 +126,7 @@ final class SearchRequest implements Arrayable
         return $this;
     }
 
-    public function explain(string $explain): self
+    public function explain(bool $explain): self
     {
         $this->request['explain'] = $explain;
         return $this;
