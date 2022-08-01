@@ -1,24 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Tests\Unit\Search;
+namespace Elastic\Adapter\Tests\Unit\Search;
 
-use ElasticAdapter\Documents\Document;
-use ElasticAdapter\Search\Highlight;
-use ElasticAdapter\Search\Hit;
+use Elastic\Adapter\Documents\Document;
+use Elastic\Adapter\Search\Highlight;
+use Elastic\Adapter\Search\Hit;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ElasticAdapter\Search\Hit
+ * @covers \Elastic\Adapter\Search\Hit
  *
- * @uses   \ElasticAdapter\Documents\Document
- * @uses   \ElasticAdapter\Search\Highlight
+ * @uses   \Elastic\Adapter\Documents\Document
+ * @uses   \Elastic\Adapter\Search\Highlight
  */
 final class HitTest extends TestCase
 {
-    /**
-     * @var Hit
-     */
-    private $hit;
+    private Hit $hit;
 
     protected function setUp(): void
     {
@@ -31,6 +29,10 @@ final class HitTest extends TestCase
                 'title' => 'foo',
             ],
             '_score' => 1.3,
+            'sort' => [
+                '2021-05-20T05:30:04.832Z',
+                4294967298,
+            ],
             'highlight' => [
                 'title' => [
                     ' <em>foo</em> ',
@@ -63,6 +65,16 @@ final class HitTest extends TestCase
         $this->assertSame('test', $this->hit->indexName());
     }
 
+    public function test_score_can_be_retrieved(): void
+    {
+        $this->assertSame(1.3, $this->hit->score());
+    }
+
+    public function test_sort_can_be_retrieved(): void
+    {
+        $this->assertSame(['2021-05-20T05:30:04.832Z', 4294967298], $this->hit->sort());
+    }
+
     public function test_document_can_be_retrieved(): void
     {
         $this->assertEquals(
@@ -86,11 +98,6 @@ final class HitTest extends TestCase
         $this->assertNull($hit->highlight());
     }
 
-    public function test_score_can_be_retrieved(): void
-    {
-        $this->assertSame(1.3, $this->hit->score());
-    }
-
     public function test_inner_hits_can_be_retrieved(): void
     {
         $innerHit = new Hit([
@@ -102,6 +109,7 @@ final class HitTest extends TestCase
             '_score' => 1.6,
         ]);
 
+        /** @var Collection $nestedInnerHits */
         $nestedInnerHits = $this->hit->innerHits()->get('nested');
 
         $this->assertCount(1, $nestedInnerHits);
@@ -117,6 +125,10 @@ final class HitTest extends TestCase
                 'title' => 'foo',
             ],
             '_score' => 1.3,
+            'sort' => [
+                '2021-05-20T05:30:04.832Z',
+                4294967298,
+            ],
             'highlight' => [
                 'title' => [
                     ' <em>foo</em> ',
@@ -142,5 +154,10 @@ final class HitTest extends TestCase
                 ],
             ],
         ], $this->hit->raw());
+    }
+
+    public function test_inner_hits_total_can_be_retrieved(): void
+    {
+        $this->assertSame(1, $this->hit->innerHitsTotal()->get('nested'));
     }
 }

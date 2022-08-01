@@ -1,31 +1,16 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Search;
+namespace Elastic\Adapter\Search;
 
+use ArrayAccess;
 use Illuminate\Support\Collection;
 
-final class Highlight implements RawResponseInterface
+final class Highlight implements ArrayAccess
 {
-    /**
-     * @var array
-     */
-    private $highlight;
+    use RawResult;
 
-    public function __construct(array $highlight)
-    {
-        $this->highlight = $highlight;
-    }
-
-    /**
-     * @return Collection|string[]
-     */
     public function snippets(string $field): Collection
     {
-        return collect($this->highlight[$field] ?? []);
-    }
-
-    public function raw(): array
-    {
-        return $this->highlight;
+        return collect($this->rawResult[$field] ?? []);
     }
 }

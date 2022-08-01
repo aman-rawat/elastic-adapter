@@ -4,6 +4,9 @@ includes:
 parameters:
   level: max
   checkMissingIterableValueType: false
+  checkGenericClassInNonGenericObjectType: false
   paths:
     - src
-    - tests
+  ignoreErrors:
+    - '#Unable to resolve the template type (TKey|TValue) in call to function collect#'
+    - '#Parameter .+? of method Illuminate\\Support\\Collection<.+?>::.+?\(\) expects .+? given#'

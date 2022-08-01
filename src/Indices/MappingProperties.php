@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Indices;
+namespace Elastic\Adapter\Indices;
 
 use BadMethodCallException;
 use Closure;
@@ -49,10 +49,7 @@ use Illuminate\Support\Str;
  */
 final class MappingProperties implements Arrayable
 {
-    /**
-     * @var array
-     */
-    private $properties = [];
+    private array $properties = [];
 
     /**
      * @param Closure|array $parameters

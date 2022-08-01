@@ -1,49 +1,51 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Tests\Unit\Indices;
+namespace Elastic\Adapter\Tests\Unit\Indices;
 
-use ElasticAdapter\Indices\Alias;
-use ElasticAdapter\Indices\IndexBlueprint;
-use ElasticAdapter\Indices\IndexManager;
-use ElasticAdapter\Indices\Mapping;
-use ElasticAdapter\Indices\Settings;
-use Elasticsearch\Client;
-use Elasticsearch\Namespaces\IndicesNamespace;
+use Elastic\Adapter\Indices\Alias;
+use Elastic\Adapter\Indices\Index;
+use Elastic\Adapter\Indices\IndexManager;
+use Elastic\Adapter\Indices\Mapping;
+use Elastic\Adapter\Indices\Settings;
+use Elastic\Client\ClientBuilderInterface;
+use Elastic\Elasticsearch\Client;
+use Elastic\Elasticsearch\Endpoints\Indices;
+use Elastic\Elasticsearch\Response\Elasticsearch;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ElasticAdapter\Indices\IndexManager
+ * @covers \Elastic\Adapter\Indices\IndexManager
  *
- * @uses   \ElasticAdapter\Indices\Alias
- * @uses   \ElasticAdapter\Indices\IndexBlueprint
- * @uses   \ElasticAdapter\Indices\Mapping
- * @uses   \ElasticAdapter\Indices\MappingProperties
- * @uses   \ElasticAdapter\Indices\Settings
+ * @uses   \Elastic\Adapter\Indices\Alias
+ * @uses   \Elastic\Adapter\Indices\Index
+ * @uses   \Elastic\Adapter\Indices\Mapping
+ * @uses   \Elastic\Adapter\Indices\MappingProperties
+ * @uses   \Elastic\Adapter\Indices\Settings
  */
 class IndexManagerTest extends TestCase
 {
-    /**
-     * @var MockObject
-     */
-    private $indices;
-    /**
-     * @var IndexManager
-     */
-    private $indexManager;
+    private MockObject $indices;
+    private IndexManager $indexManager;
 
+    /**
+     * @noinspection ClassMockingCorrectnessInspection
+     * @noinspection PhpUnitInvalidMockingEntityInspection
+     */
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->indices = $this->createMock(Indices::class);
+
         $client = $this->createMock(Client::class);
-        $this->indices = $this->createMock(IndicesNamespace::class);
+        $client->method('setAsync')->willReturnSelf();
+        $client->method('indices')->willReturn($this->indices);
 
-        $client
-            ->method('indices')
-            ->willReturn($this->indices);
+        $clientBuilder = $this->createMock(ClientBuilderInterface::class);
+        $clientBuilder->method('default')->willReturn($client);
 
-        $this->indexManager = new IndexManager($client);
+        $this->indexManager = new IndexManager($clientBuilder);
     }
 
     public function test_index_can_be_opened(): void
@@ -78,20 +80,23 @@ class IndexManagerTest extends TestCase
     {
         $indexName = 'foo';
 
+        $response = $this->createMock(Elasticsearch::class);
+        $response->method('asBool')->willReturn(true);
+
         $this->indices
             ->expects($this->once())
             ->method('exists')
             ->with([
                 'index' => $indexName,
             ])
-            ->willReturn(true);
+            ->willReturn($response);
 
         $this->assertTrue($this->indexManager->exists($indexName));
     }
 
     public function test_index_can_be_created_without_mapping_and_settings(): void
     {
-        $index = new IndexBlueprint('foo');
+        $index = new Index('foo');
 
         $this->indices
             ->expects($this->once())
@@ -106,7 +111,7 @@ class IndexManagerTest extends TestCase
     public function test_index_can_be_created_without_mapping(): void
     {
         $settings = (new Settings())->index(['number_of_replicas' => 2]);
-        $index = new IndexBlueprint('foo', null, $settings);
+        $index = new Index('foo', null, $settings);
 
         $this->indices
             ->expects($this->once())
@@ -128,7 +133,7 @@ class IndexManagerTest extends TestCase
     public function test_index_can_be_created_without_settings(): void
     {
         $mapping = (new Mapping())->text('foo');
-        $index = new IndexBlueprint('bar', $mapping);
+        $index = new Index('bar', $mapping);
 
         $this->indices
             ->expects($this->once())
@@ -151,7 +156,7 @@ class IndexManagerTest extends TestCase
 
     public function test_index_can_be_created_with_empty_settings_and_mapping(): void
     {
-        $index = new IndexBlueprint('foo', new Mapping(), new Settings());
+        $index = new Index('foo', new Mapping(), new Settings());
 
         $this->indices
             ->expects($this->once())
@@ -275,35 +280,10 @@ class IndexManagerTest extends TestCase
         $this->assertSame($this->indexManager, $this->indexManager->drop($indexName));
     }
 
-    public function test_aliases_can_be_retrieved(): void
-    {
-        $indexName = 'foo';
-        $aliasName = 'bar';
-
-        $this->indices
-            ->expects($this->once())
-            ->method('getAlias')
-            ->with([
-                'index' => $indexName,
-            ])
-            ->willReturn([
-                $indexName => [
-                    'aliases' => [
-                        $aliasName => [],
-                    ],
-                ],
-            ]);
-
-        $this->assertEquals(
-            collect([$aliasName => new Alias($aliasName)]),
-            $this->indexManager->getAliases($indexName)
-        );
-    }
-
     public function test_alias_can_be_created(): void
     {
         $indexName = 'foo';
-        $alias = (new Alias('bar', ['term' => ['user_id' => 12]], '12'));
+        $alias = (new Alias('bar', true, ['term' => ['user_id' => 12]], '12'));
 
         $this->indices
             ->expects($this->once())
@@ -312,6 +292,7 @@ class IndexManagerTest extends TestCase
                 'index' => $indexName,
                 'name' => $alias->name(),
                 'body' => [
+                    'is_write_index' => true,
                     'routing' => '12',
                     'filter' => [
                         'term' => [
@@ -322,6 +303,26 @@ class IndexManagerTest extends TestCase
             ]);
 
         $this->assertSame($this->indexManager, $this->indexManager->putAlias($indexName, $alias));
+    }
+
+    public function test_alias_can_be_created_with_raw_data(): void
+    {
+        $indexName = 'foo';
+        $aliasName = 'bar';
+        $settings = ['routing' => '1'];
+
+        $this->indices
+            ->expects($this->once())
+            ->method('putAlias')
+            ->with([
+                'index' => $indexName,
+                'name' => $aliasName,
+                'body' => [
+                    'routing' => '1',
+                ],
+            ]);
+
+        $this->assertSame($this->indexManager, $this->indexManager->putAliasRaw($indexName, $aliasName, $settings));
     }
 
     public function test_alias_can_be_deleted(): void
@@ -338,5 +339,64 @@ class IndexManagerTest extends TestCase
             ]);
 
         $this->assertSame($this->indexManager, $this->indexManager->deleteAlias($indexName, $aliasName));
+    }
+
+    public function test_aliases_can_be_retrieved(): void
+    {
+        $indexName = 'foo';
+        $aliasName = 'bar';
+
+        $response = $this->createMock(Elasticsearch::class);
+
+        $response
+            ->expects($this->once())
+            ->method('asArray')
+            ->willReturn([
+                $indexName => [
+                    'aliases' => [
+                        $aliasName => [],
+                    ],
+                ],
+            ]);
+
+        $this->indices
+            ->expects($this->once())
+            ->method('getAlias')
+            ->with([
+                'index' => $indexName,
+            ])
+            ->willReturn($response);
+
+        $this->assertEquals(
+            collect([$aliasName]),
+            $this->indexManager->getAliases($indexName)
+        );
+    }
+
+    /**
+     * @noinspection ClassMockingCorrectnessInspection
+     * @noinspection PhpUnitInvalidMockingEntityInspection
+     */
+    public function test_connection_can_be_changed(): void
+    {
+        $defaultIndices = $this->createMock(Indices::class);
+        $defaultIndices->expects($this->never())->method('create');
+
+        $defaultClient = $this->createMock(Client::class);
+        $defaultClient->method('setAsync')->willReturnSelf();
+        $defaultClient->method('indices')->willReturn($defaultIndices);
+
+        $testIndices = $this->createMock(Indices::class);
+        $testIndices->expects($this->once())->method('open')->with(['index' => 'docs']);
+
+        $testClient = $this->createMock(Client::class);
+        $testClient->method('setAsync')->willReturnSelf();
+        $testClient->method('indices')->willReturn($testIndices);
+
+        $clientBuilder = $this->createMock(ClientBuilderInterface::class);
+        $clientBuilder->method('default')->willReturn($defaultClient);
+        $clientBuilder->method('connection')->with('test')->willReturn($testClient);
+
+        (new IndexManager($clientBuilder))->connection('test')->open('docs');
     }
 }

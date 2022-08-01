@@ -1,35 +1,19 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Search;
+namespace Elastic\Adapter\Search;
 
+use ArrayAccess;
 use Illuminate\Support\Collection;
 
-final class Aggregation implements RawResponseInterface
+final class Aggregation implements ArrayAccess
 {
-    /**
-     * @var array
-     */
-    private $aggregation;
-
-    public function __construct(array $aggregation)
-    {
-        $this->aggregation = $aggregation;
-    }
+    use RawResult;
 
     /**
      * @return Collection|Bucket[]
      */
     public function buckets(): Collection
     {
-        $buckets = $this->aggregation['buckets'] ?? [];
-
-        return collect($buckets)->map(static function (array $bucket) {
-            return new Bucket($bucket);
-        });
-    }
-
-    public function raw(): array
-    {
-        return $this->aggregation;
+        return collect($this->rawResult['buckets'] ?? [])->mapInto(Bucket::class);
     }
 }

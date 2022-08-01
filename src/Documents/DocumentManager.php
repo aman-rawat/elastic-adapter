@@ -1,24 +1,17 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Documents;
+namespace Elastic\Adapter\Documents;
 
-use ElasticAdapter\Exceptions\BulkRequestException;
-use ElasticAdapter\Search\SearchRequest;
-use ElasticAdapter\Search\SearchResponse;
-use Elasticsearch\Client;
+use Elastic\Adapter\Client;
+use Elastic\Adapter\Exceptions\BulkOperationException;
+use Elastic\Adapter\Search\SearchParameters;
+use Elastic\Adapter\Search\SearchResult;
+use Elastic\Elasticsearch\Response\Elasticsearch;
 use Illuminate\Support\Collection;
 
 class DocumentManager
 {
-    /**
-     * @var Client
-     */
-    private $client;
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
+    use Client;
 
     /**
      * @param Collection|Document[] $documents
@@ -46,10 +39,12 @@ class DocumentManager
             $params['body'][] = $document->content();
         }
 
+        /** @var Elasticsearch $response */
         $response = $this->client->bulk($params);
+        $rawResult = $response->asArray();
 
-        if ($response['errors']) {
-            throw new BulkRequestException($response);
+        if ($rawResult['errors'] ?? false) {
+            throw new BulkOperationException($rawResult);
         }
 
         return $this;
@@ -80,10 +75,12 @@ class DocumentManager
             $params['body'][] = compact('delete');
         }
 
+        /** @var Elasticsearch $response */
         $response = $this->client->bulk($params);
+        $rawResult = $response->asArray();
 
-        if ($response['errors']) {
-            throw new BulkRequestException($response);
+        if ($rawResult['errors'] ?? false) {
+            throw new BulkOperationException($rawResult);
         }
 
         return $this;
@@ -102,10 +99,14 @@ class DocumentManager
         return $this;
     }
 
-    public function search(string $indexName, SearchRequest $request): SearchResponse
+    public function search(SearchParameters $searchParameters): SearchResult
     {
-        $params = array_merge($request->toArray(), ['index' => $indexName]);
+        $params = $searchParameters->toArray();
+
+        /** @var Elasticsearch $response */
         $response = $this->client->search($params);
-        return new SearchResponse($response);
+        $rawResult = $response->asArray();
+
+        return new SearchResult($rawResult);
     }
 }

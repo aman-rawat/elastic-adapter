@@ -2,20 +2,26 @@
 
 declare(strict_types=1);
 
-namespace ElasticAdapter\Tests\Unit\Search;
+namespace Elastic\Adapter\Tests\Unit\Search;
 
-use ElasticAdapter\Search\SearchRequest;
+use Elastic\Adapter\Search\SearchParameters;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
 /**
- * @covers \ElasticAdapter\Search\SearchRequest
+ * @covers \Elastic\Adapter\Search\SearchParameters
  */
-final class SearchRequestTest extends TestCase
+final class SearchParametersTest extends TestCase
 {
+    public function test_array_casting_with_indices(): void
+    {
+        $searchParameters = (new SearchParameters())->indices(['foo', 'bar']);
+        $this->assertSame(['index' => 'foo,bar'], $searchParameters->toArray());
+    }
+
     public function test_array_casting_with_query(): void
     {
-        $request = new SearchRequest([
+        $searchParameters = (new SearchParameters())->query([
             'term' => [
                 'user' => 'foo',
             ],
@@ -29,18 +35,12 @@ final class SearchRequestTest extends TestCase
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_highlight(): void
+    public function test_array_casting_with_highlight(): void
     {
-        $request = new SearchRequest([
-            'match' => [
-                'content' => 'foo',
-            ],
-        ]);
-
-        $request->highlight([
+        $searchParameters = (new SearchParameters())->highlight([
             'fields' => [
                 'content' => new stdClass(),
             ],
@@ -48,51 +48,35 @@ final class SearchRequestTest extends TestCase
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match' => [
-                        'content' => 'foo',
-                    ],
-                ],
                 'highlight' => [
                     'fields' => [
                         'content' => new stdClass(),
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_sort(): void
+    public function test_array_casting_with_sort(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->sort([
+        $searchParameters = (new SearchParameters())->sort([
             ['title' => 'asc'],
             '_score',
         ]);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'sort' => [
                     ['title' => 'asc'],
                     '_score',
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_rescore(): void
+    public function test_array_casting_with_rescore(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->rescore([
+        $searchParameters = (new SearchParameters())->rescore([
             'window_size' => 50,
             'query' => [
                 'rescore_query' => [
@@ -110,9 +94,6 @@ final class SearchRequestTest extends TestCase
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'rescore' => [
                     'window_size' => 50,
                     'query' => [
@@ -129,52 +110,34 @@ final class SearchRequestTest extends TestCase
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_from(): void
+    public function test_array_casting_with_from(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->from(10);
+        $searchParameters = (new SearchParameters())->from(10);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'from' => 10,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_size(): void
+    public function test_array_casting_with_size(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->size(100);
+        $searchParameters = (new SearchParameters())->size(100);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'size' => 100,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
-    public function test_array_casting_with_query_and_suggest(): void
+    public function test_array_casting_with_suggest(): void
     {
-        $request = new SearchRequest([
-            'match_none' => new stdClass(),
-        ]);
-
-        $request->suggest([
+        $searchParameters = (new SearchParameters())->suggest([
             'color_suggestion' => [
                 'text' => 'red',
                 'term' => [
@@ -185,9 +148,6 @@ final class SearchRequestTest extends TestCase
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_none' => new stdClass(),
-                ],
                 'suggest' => [
                     'color_suggestion' => [
                         'text' => 'red',
@@ -197,7 +157,7 @@ final class SearchRequestTest extends TestCase
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function sourceProvider(): array
@@ -217,49 +177,33 @@ final class SearchRequestTest extends TestCase
      */
     public function test_array_casting_with_source($source): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->source($source);
+        $searchParameters = (new SearchParameters())->source($source);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 '_source' => $source,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_collapse(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->collapse([
+        $searchParameters = (new SearchParameters())->collapse([
             'field' => 'user',
         ]);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'collapse' => [
                     'field' => 'user',
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_aggregations(): void
     {
-        $request = new SearchRequest();
-
-        $request->aggregations([
+        $searchParameters = (new SearchParameters())->aggregations([
             'min_price' => [
                 'min' => [
                     'field' => 'price',
@@ -277,16 +221,12 @@ final class SearchRequestTest extends TestCase
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_post_filter(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->postFilter([
+        $searchParameters = (new SearchParameters())->postFilter([
             'term' => [
                 'color' => 'red',
             ],
@@ -294,85 +234,57 @@ final class SearchRequestTest extends TestCase
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'post_filter' => [
                     'term' => [
                         'color' => 'red',
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_track_total_hits(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->trackTotalHits(100);
+        $searchParameters = (new SearchParameters())->trackTotalHits(100);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'track_total_hits' => 100,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_indices_boost(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->indicesBoost([
+        $searchParameters = (new SearchParameters())->indicesBoost([
             ['my-alias' => 1.4],
             ['my-index' => 1.3],
         ]);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'indices_boost' => [
                     ['my-alias' => 1.4],
                     ['my-index' => 1.3],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_track_scores(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->trackScores(true);
+        $searchParameters = (new SearchParameters())->trackScores(true);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'track_scores' => true,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_script_fields(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->scriptFields([
+        $searchParameters = (new SearchParameters())->scriptFields([
             'my_doubled_field' => [
                 'script' => [
                     'lang' => 'painless',
@@ -387,9 +299,6 @@ final class SearchRequestTest extends TestCase
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'script_fields' => [
                     'my_doubled_field' => [
                         'script' => [
@@ -403,60 +312,75 @@ final class SearchRequestTest extends TestCase
                     ],
                 ],
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_min_score(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->minScore(0.5);
+        $searchParameters = (new SearchParameters())->minScore(0.5);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
                 'min_score' => 0.5,
             ],
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_search_type(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
-
-        $request->searchType('query_then_fetch');
+        $searchParameters = (new SearchParameters())->searchType('query_then_fetch');
 
         $this->assertEquals([
-            'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
-                ],
-            ],
             'search_type' => 'query_then_fetch',
-        ], $request->toArray());
+        ], $searchParameters->toArray());
     }
 
     public function test_array_casting_with_preference(): void
     {
-        $request = new SearchRequest([
-            'match_all' => new stdClass(),
-        ]);
+        $searchParameters = (new SearchParameters())->preference('_local');
 
-        $request->preference('_local');
+        $this->assertEquals([
+            'preference' => '_local',
+        ], $searchParameters->toArray());
+    }
+
+    public function test_array_casting_with_point_in_time(): void
+    {
+        $searchParameters = (new SearchParameters())->pointInTime([
+            'id' => '46ToAwMDaWR5BXV1',
+            'keep_alive' => '1m',
+        ]);
 
         $this->assertEquals([
             'body' => [
-                'query' => [
-                    'match_all' => new stdClass(),
+                'pit' => [
+                    'id' => '46ToAwMDaWR5BXV1',
+                    'keep_alive' => '1m',
                 ],
             ],
-            'preference' => '_local',
-        ], $request->toArray());
+        ], $searchParameters->toArray());
+    }
+
+    public function test_array_casting_with_search_after(): void
+    {
+        $searchParameters = (new SearchParameters())->searchAfter([
+            '2021-05-20T05:30:04.832Z',
+            4294967298,
+        ]);
+
+        $this->assertEquals([
+            'body' => [
+                'search_after' => [
+                    '2021-05-20T05:30:04.832Z',
+                    4294967298,
+                ],
+            ],
+        ], $searchParameters->toArray());
+    }
+
+    public function test_array_casting_with_routing(): void
+    {
+        $searchParameters = (new SearchParameters())->routing(['foo', 'bar']);
+        $this->assertSame(['routing' => 'foo,bar'], $searchParameters->toArray());
     }
 }

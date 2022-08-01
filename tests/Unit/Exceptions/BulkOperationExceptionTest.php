@@ -1,18 +1,18 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Tests\Unit\Exceptions;
+namespace Elastic\Adapter\Tests\Unit\Exceptions;
 
-use ElasticAdapter\Exceptions\BulkRequestException;
+use Elastic\Adapter\Exceptions\BulkOperationException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ElasticAdapter\Exceptions\BulkRequestException
+ * @covers \Elastic\Adapter\Exceptions\BulkOperationException
  */
-final class BulkRequestExceptionTest extends TestCase
+final class BulkOperationExceptionTest extends TestCase
 {
-    public function test_response_can_be_retrieved(): void
+    public function test_raw_result_can_be_retrieved(): void
     {
-        $response = [
+        $rawResult = [
             'took' => 486,
             'errors' => true,
             'items' => [
@@ -34,14 +34,14 @@ final class BulkRequestExceptionTest extends TestCase
             ],
         ];
 
-        $exception = new BulkRequestException($response);
+        $exception = new BulkOperationException($rawResult);
 
-        $this->assertSame($response, $exception->getResponse());
+        $this->assertSame($rawResult, $exception->rawResult());
     }
 
-    public function test_first_error_message_from_response_is_given_in_exception_message(): void
+    public function test_first_error_message_from_result_is_given_in_exception_message(): void
     {
-        $response = [
+        $rawResult = [
             'took' => 486,
             'errors' => true,
             'items' => [
@@ -63,17 +63,17 @@ final class BulkRequestExceptionTest extends TestCase
             ],
         ];
 
-        $exception = new BulkRequestException($response);
+        $exception = new BulkOperationException($rawResult);
 
         $this->assertEquals(
-            '1 bulk operation(s) did not complete successfully. Error: document_missing_exception. Reason: [_doc][5]: document missing. Catch the exception and use the ElasticAdapter\Exceptions\BulkRequestException::getResponse() method to get more details.',
+            '1 bulk operation(s) did not complete successfully. Error: document_missing_exception. Reason: [_doc][5]: document missing. Catch the exception and use the Elastic\Adapter\Exceptions\BulkOperationException::rawResult() method to get more details.',
             $exception->getMessage()
         );
     }
 
-    public function test_exception_can_be_throw_with_many_errors_in_response(): void
+    public function test_exception_can_be_throw_with_many_errors_in_result(): void
     {
-        $response = [
+        $rawResult = [
             'took' => 486,
             'errors' => true,
             'items' => [
@@ -110,17 +110,17 @@ final class BulkRequestExceptionTest extends TestCase
             ],
         ];
 
-        $exception = new BulkRequestException($response);
+        $exception = new BulkOperationException($rawResult);
 
         $this->assertEquals(
-            '2 bulk operation(s) did not complete successfully. First error: document_missing_exception. Reason: [_doc][5]: document missing. Catch the exception and use the ElasticAdapter\Exceptions\BulkRequestException::getResponse() method to get more details.',
+            '2 bulk operation(s) did not complete successfully. First error: document_missing_exception. Reason: [_doc][5]: document missing. Catch the exception and use the Elastic\Adapter\Exceptions\BulkOperationException::rawResult() method to get more details.',
             $exception->getMessage()
         );
     }
 
-    public function test_exception_can_be_throw_with_missing_error_in_response(): void
+    public function test_exception_can_be_throw_with_missing_error_in_result(): void
     {
-        $response = [
+        $rawResult = [
             'took' => 486,
             'errors' => true,
             'items' => [
@@ -135,26 +135,26 @@ final class BulkRequestExceptionTest extends TestCase
             ],
         ];
 
-        $exception = new BulkRequestException($response);
+        $exception = new BulkOperationException($rawResult);
 
         $this->assertEquals(
-            '1 bulk operation(s) did not complete successfully. Catch the exception and use the ElasticAdapter\Exceptions\BulkRequestException::getResponse() method to get more details.',
+            '1 bulk operation(s) did not complete successfully. Catch the exception and use the Elastic\Adapter\Exceptions\BulkOperationException::rawResult() method to get more details.',
             $exception->getMessage()
         );
     }
 
-    public function test_exception_can_be_throw_with_missing_items_in_response(): void
+    public function test_exception_can_be_throw_with_missing_items_in_result(): void
     {
-        $response = [
+        $rawResult = [
             'took' => 486,
             'errors' => true,
             'items' => [],
         ];
 
-        $exception = new BulkRequestException($response);
+        $exception = new BulkOperationException($rawResult);
 
         $this->assertEquals(
-            'One or more did not complete successfully. Catch the exception and use the ElasticAdapter\Exceptions\BulkRequestException::getResponse() method to get more details.',
+            'One or more did not complete successfully. Catch the exception and use the Elastic\Adapter\Exceptions\BulkOperationException::rawResult() method to get more details.',
             $exception->getMessage()
         );
     }

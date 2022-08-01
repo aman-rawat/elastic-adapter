@@ -1,21 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Indices;
+namespace Elastic\Adapter\Indices;
 
-final class IndexBlueprint
+final class Index
 {
-    /**
-     * @var string
-     */
-    private $name;
-    /**
-     * @var Mapping|null
-     */
-    private $mapping;
-    /**
-     * @var Settings|null
-     */
-    private $settings;
+    private string $name;
+    private ?Mapping $mapping;
+    private ?Settings $settings;
 
     public function __construct(string $name, Mapping $mapping = null, Settings $settings = null)
     {

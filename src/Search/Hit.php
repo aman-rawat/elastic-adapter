@@ -1,63 +1,51 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Search;
+namespace Elastic\Adapter\Search;
 
-use ElasticAdapter\Documents\Document;
+use ArrayAccess;
+use Elastic\Adapter\Documents\Document;
 use Illuminate\Support\Collection;
 
-final class Hit implements RawResponseInterface
+final class Hit implements ArrayAccess
 {
-    /**
-     * @var array
-     */
-    private $hit;
-
-    public function __construct(array $hit)
-    {
-        $this->hit = $hit;
-    }
+    use RawResult;
 
     public function indexName(): string
     {
-        return $this->hit['_index'];
+        return $this->rawResult['_index'];
     }
 
     public function score(): ?float
     {
-        return $this->hit['_score'];
+        return $this->rawResult['_score'] ?? null;
+    }
+
+    public function sort(): ?array
+    {
+        return $this->rawResult['sort'] ?? null;
     }
 
     public function document(): Document
     {
-        return new Document(
-            $this->hit['_id'],
-            $this->hit['_source'] ?? []
-        );
+        return new Document($this->rawResult['_id'], $this->rawResult['_source'] ?? []);
     }
 
     public function highlight(): ?Highlight
     {
-        return isset($this->hit['highlight']) ?
-            new Highlight($this->hit['highlight']) : null;
+        return isset($this->rawResult['highlight']) ? new Highlight($this->rawResult['highlight']) : null;
     }
 
     public function innerHits(): Collection
     {
-        $innerHits = $this->hit['inner_hits'] ?? [];
-
-        return collect($innerHits)->map(static function (array $hits) {
-            return collect($hits['hits']['hits'])->map(static function (array $hit) {
-                return new self($hit);
-            });
-        });
+        return collect($this->rawResult['inner_hits'] ?? [])->map(
+            static fn (array $rawHits) => collect($rawHits['hits']['hits'])->mapInto(self::class)
+        );
     }
 
-    public function explanation() {
-        return $this->hit['_explanation'] ?? [];
-    }
-
-    public function raw(): array
+    public function innerHitsTotal(): Collection
     {
-        return $this->hit;
+        return collect($this->rawResult['inner_hits'] ?? [])->map(
+            static fn (array $rawHits) => $rawHits['hits']['total']['value'] ?? null
+        );
     }
 }

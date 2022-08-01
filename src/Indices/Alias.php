@@ -1,25 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Indices;
+namespace Elastic\Adapter\Indices;
 
 final class Alias
 {
-    /**
-     * @var string
-     */
-    private $name;
-    /**
-     * @var array|null
-     */
-    private $filter;
-    /**
-     * @var string|null
-     */
-    private $routing;
+    private string $name;
+    private bool $isWriteIndex;
+    private ?array $filter;
+    private ?string $routing;
 
-    public function __construct(string $name, ?array $filter = null, ?string $routing = null)
-    {
+    public function __construct(
+        string $name,
+        bool $isWriteIndex = false,
+        ?array $filter = null,
+        ?string $routing = null
+    ) {
         $this->name = $name;
+        $this->isWriteIndex = $isWriteIndex;
         $this->filter = $filter;
         $this->routing = $routing;
     }
@@ -27,6 +24,11 @@ final class Alias
     public function name(): string
     {
         return $this->name;
+    }
+
+    public function isWriteIndex(): bool
+    {
+        return $this->isWriteIndex;
     }
 
     public function filter(): ?array

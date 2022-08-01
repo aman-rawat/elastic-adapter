@@ -14,22 +14,24 @@
 
 ---
 
-Elastic Adapter is an adapter for official PHP Elasticsearch client. It's designed to simplify basic index and document 
+Elastic Adapter is an adapter for the official PHP Elasticsearch client. It's designed to simplify basic index and document
 operations.
 
 ## Contents
 
 * [Compatibility](#compatibility)
-* [Installation](#installation) 
+* [Installation](#installation)
+* [Configuration](#configuration)
 * [Index Management](#index-management)
 * [Document Management](#document-management)
+* [Point in Time Management](#point-in-time-management)
 
 ## Compatibility
 
 The current version of Elastic Adapter has been tested with the following configuration:
 
-* PHP 7.3-8.0
-* Elasticsearch 7.x
+* PHP 7.4-8.x
+* Elasticsearch 8.x
 * Laravel 6.x-8.x
 
 ## Installation
@@ -40,29 +42,29 @@ The library can be installed via Composer:
 composer require babenkoivan/elastic-adapter
 ```
 
+## Configuration
+
+Elastic Adapter uses [babenkoivan/elastic-client](https://github.com/babenkoivan/elastic-client) as a dependency.
+To change the client settings you need to publish the configuration file first:
+
+```bash
+php artisan vendor:publish --provider="Elastic\Client\ServiceProvider"
+```
+
+In the newly created `config/elastic.client.php` file you can define the default connection name and describe multiple
+connections using configuration hashes. Please, refer to
+the [elastic-client documentation](https://github.com/babenkoivan/elastic-client) for more details.
+
 ## Index Management
 
-`IndexManager` can be used to manipulate indices. It uses Elasticsearch client as a dependency,
-therefore you need to initiate the client before you create an `IndexManager` instance:
-
-```php
-$client = \Elasticsearch\ClientBuilder::fromConfig([
-  'hosts' => [
-      'localhost:9200'
-  ]
-]);
-
-$indexManager = new \ElasticAdapter\Indices\IndexManager($client);
-``` 
-
-The manager provides a set of useful methods, which are listed below. 
+`\Elastic\Adapter\Indices\IndexManager` is used to manipulate indices.
 
 ### Create
 
 Create an index, either with the default settings and mapping:
 
 ```php
-$index = new \ElasticAdapter\Indices\IndexBlueprint('my_index');
+$index = new \Elastic\Adapter\Indices\Index('my_index');
 
 $indexManager->create($index);
 ```
@@ -70,7 +72,7 @@ $indexManager->create($index);
 or configured according to your needs:
 
 ```php
-$mapping = (new \ElasticAdapter\Indices\Mapping())
+$mapping = (new \Elastic\Adapter\Indices\Mapping())
     ->text('title', [
         'boost' => 2,
     ])
@@ -86,13 +88,13 @@ $mapping = (new \ElasticAdapter\Indices\Mapping())
         ],
     ]);
 
-$settings = (new \ElasticAdapter\Indices\Settings())
+$settings = (new \Elastic\Adapter\Indices\Settings())
     ->index([
         'number_of_replicas' => 2,
         'refresh_interval' => -1
     ]);
 
-$index = new \ElasticAdapter\Indices\IndexBlueprint('my_index', $mapping, $settings);
+$index = new \Elastic\Adapter\Indices\Index('my_index', $mapping, $settings);
 
 $indexManager->create($index);
 ```
@@ -128,7 +130,7 @@ $indexManager->drop('my_index');
 Update an index mapping using builder:
 
 ```php
-$mapping = (new \ElasticAdapter\Indices\Mapping())
+$mapping = (new \Elastic\Adapter\Indices\Mapping())
     ->text('title', [
         'boost' => 2,
     ])
@@ -159,7 +161,7 @@ $indexManager->putMappingRaw('my_index', $mapping);
 Update an index settings using builder:
 
 ```php
-$settings = (new \ElasticAdapter\Indices\Settings())
+$settings = (new \Elastic\Adapter\Indices\Settings())
     ->analysis([
         'analyzer' => [
             'content' => [
@@ -211,13 +213,28 @@ $indexManager->close('my_index');
 Create an alias:
 
 ```php
-$alias = new \ElasticAdapter\Indices\Alias('my_alias', [
+$alias = new \Elastic\Adapter\Indices\Alias('my_alias', true, [
     'term' => [
         'user_id' => 12,
     ],
 ]);
 
 $indexManager->putAlias('my_index', $alias);
+```
+
+The same with raw input:
+
+```php
+$settings = [
+    'is_write_index' => true,
+    'filter' => [
+        'term' => [
+            'user_id' => 12,
+        ],
+    ],
+];
+
+$indexManager->putAliasRaw('my_index', 'my_alias', $settings);
 ```
 
 ### Get Aliases
@@ -236,19 +253,17 @@ Delete an alias:
 $indexManager->deleteAlias('my_index', 'my_alias');
 ```
 
-## Document Management
+### Connection
 
-Similarly to `IndexManager`, the `DocumentManager` class also depends on Elasticsearch client:
+Switch Elasticsearch connection:
 
 ```php
-$client = \Elasticsearch\ClientBuilder::fromConfig([
-  'hosts' => [
-      'localhost:9200'
-  ]
-]);
+$indexManager->connection('my_connection');
+```
 
-$documentManager = new \ElasticAdapter\Documents\DocumentManager($client);
-``` 
+## Document Management
+
+`\Elastic\Adapter\Documents\DocumentManager` is used to manage and search documents. 
 
 ### Index
 
@@ -256,8 +271,8 @@ Add a document to the index:
 
 ```php
 $documents = collect([
-    new ElasticAdapter\Documents\Document('1', ['title' => 'foo']),
-    new ElasticAdapter\Documents\Document('2', ['title' => 'bar']),
+    new \Elastic\Adapter\Documents\Document('1', ['title' => 'foo']),
+    new \Elastic\Adapter\Documents\Document('2', ['title' => 'bar']),
 ]);
 
 $documentManager->index('my_index', $documents);
@@ -272,7 +287,7 @@ $documentManager->index('my_index', $documents, true);
 Finally, you can set a custom routing:
 
 ```php
-$routing = (new ElasticAdapter\Documents\Routing())
+$routing = (new \Elastic\Adapter\Documents\Routing())
     ->add('1', 'value1')
     ->add('2', 'value2');
 
@@ -298,7 +313,7 @@ $documentManager->delete('my_index', $documentIds, true);
 You can also set a custom routing:
 
 ```php
-$routing = (new ElasticAdapter\Documents\Routing())
+$routing = (new \Elastic\Adapter\Documents\Routing())
     ->add('1', 'value1')
     ->add('2', 'value2');
 
@@ -316,15 +331,21 @@ $documentManager->deleteByQuery('my_index', ['match_all' => new \stdClass()]);
 Search documents in the index:
 
 ```php
-// create a search request
-$request = new \ElasticAdapter\Search\SearchRequest([
+// configure search parameters
+$searchParameters = new \Elastic\Adapter\Search\SearchParameters();
+
+// specify indices to search in
+$searchParameters->indices(['my_index1', 'my_index2']);
+
+// define the query
+$searchParameters->query([
     'match' => [
         'message' => 'test'
     ]
 ]);
 
 // configure highlighting
-$request->highlight([
+$searchParameters->highlight([
     'fields' => [
         'message' => [
             'type' => 'plain',
@@ -336,7 +357,7 @@ $request->highlight([
 ]);
 
 // add suggestions
-$request->suggest([
+$searchParameters->suggest([
     'message_suggest' => [
         'text' => 'test',
         'term' => [
@@ -346,15 +367,15 @@ $request->suggest([
 ]);
 
 // enable source filtering
-$request->source(['message', 'post_date']);
+$searchParameters->source(['message', 'post_date']);
 
 // collapse fields
-$request->collapse([
+$searchParameters->collapse([
     'field' => 'user'
 ]);
 
 // aggregate data
-$request->aggregations([
+$searchParameters->aggregations([
     'max_likes' => [
         'max' => [
             'field' => 'likes'
@@ -363,13 +384,13 @@ $request->aggregations([
 ]);
 
 // sort documents
-$request->sort([
+$searchParameters->sort([
     ['post_date' => ['order' => 'asc']],
     '_score'
 ]);
 
 // rescore documents
-$request->rescore([
+$searchParameters->rescore([
     'window_size' => 50,
     'query' => [
         'rescore_query' => [
@@ -386,20 +407,20 @@ $request->rescore([
 ]);
 
 // add a post filter
-$request->postFilter([
+$searchParameters->postFilter([
     'term' => [
         'cover' => 'hard'
     ]
 ]);
 
 // track total hits
-$request->trackTotalHits(true);
+$searchParameters->trackTotalHits(true);
 
 // track scores
-$request->trackScores(true);
+$searchParameters->trackScores(true);
 
 // script fields
-$request->scriptFields([
+$searchParameters->scriptFields([
     'my_doubled_field' => [
         'script' => [
             'lang' => 'painless',
@@ -413,28 +434,42 @@ $request->scriptFields([
 ]);
 
 // boost indices
-$request->indicesBoost([
+$searchParameters->indicesBoost([
     ['my-alias' => 1.4],
     ['my-index' => 1.3],
 ]);
 
 // define the search type
-$request->searchType('query_then_fetch');
+$searchParameters->searchType('query_then_fetch');
 
 // set the preference
-$request->preference('_local');
+$searchParameters->preference('_local');
 
 // use pagination
-$request->from(0)->size(20);
+$searchParameters->from(0)->size(20);
 
-// execute the search request and get the response
-$response = $documentManager->search('my_index', $request);
+// search after
+$searchParameters->pointInTime([
+    'id' => '46ToAwMDaWR5BXV1',
+    'keep_alive' => '1m',
+]);
+
+$searchParameters->searchAfter([
+    '2021-05-20T05:30:04.832Z',
+    4294967298,
+]);
+
+// use custom routing
+$searchParameters->routing(['user1', 'user2']);
+
+// perform the search and get the result
+$searchResult = $documentManager->search($searchParameters);
 
 // get the total number of matching documents
-$total = $response->total(); 
+$total = $searchResult->total(); 
 
 // get the corresponding hits
-$hits = $response->hits();
+$hits = $searchResult->hits();
 
 // every hit provides access to the related index name, the score, the document, the highlight and the inner hits
 // in addition, you can get a raw representation of the hit
@@ -444,12 +479,48 @@ foreach ($hits as $hit) {
     $document = $hit->document();
     $highlight = $hit->highlight();
     $innerHits = $hit->innerHits();
+    $innerHitsTotal = $hit->innerHitsTotal();
     $raw = $hit->raw();
 }
 
-// get the suggestions
-$suggestions = $response->suggestions();
+// get suggestions
+$suggestions = $searchResult->suggestions();
 
-// get the aggregations
-$aggregations = $response->aggregations();
+// get aggregations
+$aggregations = $searchResult->aggregations();
+```
+
+### Connection
+
+Switch Elasticsearch connection:
+
+```php
+$documentManager->connection('my_connection');
+```
+
+## Point in Time Management
+
+`\Elastic\Adapter\Search\PointInTimeManager` is used to control points in time.
+
+### Open
+
+Open a point in time:
+
+```php
+$pointInTimeId = $pointInTimeManager->open('my_index', '1m');
+```
+### Close
+
+Close a point in time:
+
+```php
+$pointInTimeManager->close($pointInTimeId);
+```
+
+### Connection
+
+Switch Elasticsearch connection:
+
+```php
+$pointInTimeManager->connection('my_connection');
 ```

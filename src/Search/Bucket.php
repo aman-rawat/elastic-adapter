@@ -1,22 +1,16 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Search;
+namespace Elastic\Adapter\Search;
 
-final class Bucket implements RawResponseInterface
+use ArrayAccess;
+
+final class Bucket implements ArrayAccess
 {
-    /**
-     * @var array
-     */
-    private $bucket;
-
-    public function __construct(array $bucket)
-    {
-        $this->bucket = $bucket;
-    }
+    use RawResult;
 
     public function docCount(): int
     {
-        return $this->bucket['doc_count'] ?? 0;
+        return $this->rawResult['doc_count'] ?? 0;
     }
 
     /**
@@ -24,11 +18,6 @@ final class Bucket implements RawResponseInterface
      */
     public function key()
     {
-        return $this->bucket['key'];
-    }
-
-    public function raw(): array
-    {
-        return $this->bucket;
+        return $this->rawResult['key'];
     }
 }

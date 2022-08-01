@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ElasticAdapter\Indices;
+namespace Elastic\Adapter\Indices;
 
 use BadMethodCallException;
 use Illuminate\Contracts\Support\Arrayable;
@@ -12,10 +12,7 @@ use Illuminate\Support\Str;
  */
 final class Settings implements Arrayable
 {
-    /**
-     * @var array
-     */
-    private $settings = [];
+    private array $settings = [];
 
     public function __call(string $method, array $arguments): self
     {
