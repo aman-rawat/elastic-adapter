@@ -126,6 +126,12 @@ final class SearchRequest implements Arrayable
         return $this;
     }
 
+    public function explain(string $explain): self
+    {
+        $this->request['explain'] = $explain;
+        return $this;
+    }
+
     public function toArray(): array
     {
         return $this->request;

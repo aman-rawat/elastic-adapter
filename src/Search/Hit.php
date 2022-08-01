@@ -52,6 +52,10 @@ final class Hit implements RawResponseInterface
         });
     }
 
+    public function explanation() {
+        return $this->hit['_explanation'] ?? [];
+    }
+
     public function raw(): array
     {
         return $this->hit;
