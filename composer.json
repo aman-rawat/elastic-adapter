@@ -1,6 +1,7 @@
 {
     "name": "aman-rawat/elastic-adapter",
     "description": "Adapter for official PHP Elasticsearch client",
+    "version": "1.0.1",
     "keywords": [
         "elastic",
         "elasticsearch",
